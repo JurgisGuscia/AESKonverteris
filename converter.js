@@ -1,7 +1,8 @@
 const conversionData = {}
 const textInput = document.getElementById("inputTextArea");
 const keyInput = document.getElementById("keyInput");
-
+const exportToScreen = document.getElementById("expanded");
+const outPutField = document.getElementById("outPutContainer");
 async function execute(e){
     const inputType = document.querySelector('input[name="inputTypeSelection"]:checked').value;
     e.preventDefault();
@@ -16,7 +17,13 @@ async function execute(e){
             }
         }
     };
-    downloadOutput(encodedText);
+    if(encodedText !== ""){
+        if(exportToScreen.checked){
+            outPutField.textContent = encodedText;
+        }else{
+            downloadOutput(encodedText);
+        }
+    }
 }
 
 function inputEmpty(str){
