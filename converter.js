@@ -5,10 +5,9 @@ const keyInput = document.getElementById("keyInput");
 async function execute(e){
     const inputType = document.querySelector('input[name="inputTypeSelection"]:checked').value;
     e.preventDefault();
-    let encodedText;
+    let encodedText = "";
     if(checkInputs(inputType)){
         await collectData();
-        console.log(conversionData);
         if(conversionData.input){
             if(conversionData.operation === "scramble"){
                 encodedText = encode();
@@ -133,6 +132,38 @@ function encodeCfb(key) {
   return `${CryptoJS.enc.Base64.stringify(iv)}:${encrypted.toString()}`;
 }
 
+function decodeEcb(key) {
+  const decrypted = CryptoJS.AES.decrypt(conversionData.input, key, {
+    mode: CryptoJS.mode.ECB,
+    padding: CryptoJS.pad.Pkcs7
+  });
+  return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
+function decodeCbc(key) {
+  const parts = conversionData.input.split(":");
+  const iv = CryptoJS.enc.Base64.parse(parts[0]);
+  const ciphertext = parts[1];
+  const decrypted = CryptoJS.AES.decrypt(ciphertext, key, {
+    iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  });
+  return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
+function decodeCfb(key) {
+  const parts = conversionData.input.split(":");
+  const iv = CryptoJS.enc.Base64.parse(parts[0]);
+  const ciphertext = parts[1];
+  const decrypted = CryptoJS.AES.decrypt(ciphertext, key, {
+    iv,
+    mode: CryptoJS.mode.CFB,
+    padding: CryptoJS.pad.Pkcs7
+  });
+  return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
 function encode(){
     const derivedKey = deriveKey(conversionData.key, conversionData.keyComplexity);
     let encryptedText;
@@ -142,6 +173,11 @@ function encode(){
     return encryptedText;
 }
 function decode(){
-    console.log("decoding");
+    const derivedKey = deriveKey(conversionData.key, conversionData.keyComplexity);
+    let decryptedText;
+    conversionData.mode === "ecb" && (decryptedText = decodeEcb(derivedKey));
+    conversionData.mode === "cbc" && (decryptedText = decodeCbc(derivedKey));
+    conversionData.mode === "cfb" && (decryptedText = decodeCfb(derivedKey));
+    return decryptedText;
 }
 
