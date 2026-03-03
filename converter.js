@@ -2,20 +2,22 @@ const conversionData = {}
 const textInput = document.getElementById("inputTextArea");
 const keyInput = document.getElementById("keyInput");
 
-async function excecute(e){
+async function execute(e){
     const inputType = document.querySelector('input[name="inputTypeSelection"]:checked').value;
     e.preventDefault();
+    let encodedText;
     if(checkInputs(inputType)){
         await collectData();
         console.log(conversionData);
         if(conversionData.input){
             if(conversionData.operation === "scramble"){
-                encode();
+                encodedText = encode();
             }else{
-                decode();
+                encodedText = decode();
             }
         }
     };
+    downloadOutput(encodedText);
 }
 
 function inputEmpty(str){
@@ -37,6 +39,18 @@ function checkInputs(inputType){
         return false;
     }
     return true;
+}
+
+function downloadOutput(content) {
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "output.txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function collectData(){
@@ -78,8 +92,54 @@ async function readFileData(){
     return content;
 }
 
+function deriveKey(userInputKey, keyBits) {
+    let normalizedKey;
+    keyBits === "key128" && (normalizedKey = 128);
+    keyBits === "key192" && (normalizedKey = 192);
+    keyBits === "key256" && (normalizedKey = 256);
+    const salt = CryptoJS.enc.Utf8.parse("fixedSalt");
+    const key = CryptoJS.PBKDF2(userInputKey, salt, {
+        keySize: normalizedKey / 32,   
+        iterations: 10000
+    });
+    return key; 
+}
+
+function encodeEcb(key){
+    const encrypted = CryptoJS.AES.encrypt(conversionData.input, key, {
+        mode: CryptoJS.mode.ECB,
+        padding: CryptoJS.pad.Pkcs7
+    });
+    return encrypted.toString(); 
+}
+
+function encodeCbc(key) {
+  const iv = CryptoJS.lib.WordArray.random(16);
+  const encrypted = CryptoJS.AES.encrypt(conversionData.input, key, {
+    iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  });
+  return `${CryptoJS.enc.Base64.stringify(iv)}:${encrypted.toString()}`;
+}
+
+function encodeCfb(key) {
+  const iv = CryptoJS.lib.WordArray.random(16);
+  const encrypted = CryptoJS.AES.encrypt(conversionData.input, key, {
+    iv,
+    mode: CryptoJS.mode.CFB,
+    padding: CryptoJS.pad.Pkcs7
+  });
+  return `${CryptoJS.enc.Base64.stringify(iv)}:${encrypted.toString()}`;
+}
+
 function encode(){
-    console.log("encoding");
+    const derivedKey = deriveKey(conversionData.key, conversionData.keyComplexity);
+    let encryptedText;
+    conversionData.mode === "ecb" && (encryptedText = encodeEcb(derivedKey));
+    conversionData.mode === "cbc" && (encryptedText = encodeCbc(derivedKey));
+    conversionData.mode === "cfb" && (encryptedText = encodeCfb(derivedKey));
+    return encryptedText;
 }
 function decode(){
     console.log("decoding");

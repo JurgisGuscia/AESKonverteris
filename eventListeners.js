@@ -4,6 +4,6 @@ const executeButton = document.getElementById("executeButton");
 
 selectTextInput.addEventListener("change", ()=>{toggleInputType()});
 selectfileInput.addEventListener("change", ()=>{toggleInputType()});
-executeButton.addEventListener("click", (e)=>{excecute(e)});
+executeButton.addEventListener("click", (e)=>{execute(e)});
 
 
